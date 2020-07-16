@@ -38,7 +38,7 @@ start_time = time.time()
 payload_init = {
             'salesDateMin': 2018,
             'zipcodeFrom': 2950,
-            'zipcodeTo': 2970,
+            'zipcodeTo': 2950,
             'street': '',
             'saleType': '',
             'page': 1,
@@ -129,7 +129,7 @@ if prop_req_init.status_code == 200:
                         scrape_dict['lot_size'].append(float(re.findall('([^\s]+)', span_box_data[1].get_text())[0].replace('.', '')))
                         scrape_dict['energy_class'].append(span_box_data[5].get_text().strip())
                         scrape_dict['ownership_expenses'].append(float(re.findall('\d+', span_box_data[6].get_text().replace('.', ''))[0]))
-                        scrape_dict['basement_size'].append(float(re.findall('\d+', span_box_data[7].get_text())[0]).update())
+                        scrape_dict['basement_size'].append(float(re.findall('\d+', span_box_data[7].get_text())[0]))
                         # Get time on market
                         span_time_on_market = soup.find_all('span', class_='text-primary h5 h-md-4 m-0')
                         time_on_market = re.findall('\s(.*)\spå markedet', span_time_on_market[0].get_text())
@@ -163,27 +163,19 @@ if prop_req_init.status_code == 200:
 
     realestate_list = []
 
+    page_count = 0
     for url in all_urls:
+        page_count += 1
         realestate_list.append(scrape_boliga(url).result())
+        print(f"Page scraped: {page_count} / {no_pages}")
 
     # Merge list of dict together into one dict
     realestate = {}
-    page_count = 0
     for i in range(len(realestate_list)):
         if (i == 0):
-            page_count += 1
             realestate = realestate_list[0][0] # initial list element
-            print(f"Page scraped: {page_count} / {no_pages}")
         else:
             realestate = {key: value + realestate_list[i][0][key] for key, value in realestate.items()}
-            print(f"Page scraped: {page_count} / {no_pages}")
-
-    # keys of issue
-    """
-    lot_size: instance found in first element of realestate_list
-    energy_class
-    ownership_expenses
-    """
 
     # p = Pool(10)
     # p.map(scrape_boliga, all_urls[0:3])
@@ -196,22 +188,6 @@ if prop_req_init.status_code == 200:
 
     # Create dataframe from extractions
     df = pd.DataFrame(realestate)
-    # df = pd.DataFrame({'street': street,
-    #                    'property_type': property_type,
-    #                    'postnr': postnr,
-    #                    'settlement': settlement,
-    #                    'price': price,
-    #                    'sales_date': sales_date,
-    #                    'sqm': sqm,
-    #                    'sqm_price': sqm_price,
-    #                    'sales_type': sales_type,
-    #                    'year_built': year_built,
-    #                    'price_change': price_change,
-    #                    'lot_size': lot_size,
-    #                    'energy_class': energy_class,
-    #                    'ownership_expenses': ownership_expenses,
-    #                    'basement_size': basement_size,
-    #                    'days_on_market': days_on_market})
     
     # Update df with additional columns
     # street number
@@ -253,14 +229,15 @@ if prop_req_init.status_code == 200:
     df['property_type'] = df.apply(lambda x: assign_property_type(x), axis=1)
     
     # Set up output dataframe with variable in wanted order
-    output_df = df[['street', 'street_num', 'floor', 'postnr', 'settlement',
-                    'property_type', 'sales_type', 'sqm', 'sqm_price', 
-                    'year_built', 'sales_date', 'lot_size', 'energy_class', 
+    output_df = df[['estateId', 'street', 'street_num', 'floor', 'postnr', 
+                    'settlement', 'lat', 'long', 'property_type', 
+                    'sales_type', 'sqm', 'sqm_price', 'year_built', 
+                    'sales_date', 'lot_size', 'energy_class', 
                     'ownership_expenses', 'basement_size', 'days_on_market',
                     'price_change', 'price']]
     
     # Output to csv file - no commas left in variable values so CSV is an ok format
-    # output_df.to_csv('C:/Users/atyr/OneDrive - Novo Nordisk/Python/private/scrape_boliga/boliga_scrape_rungsted_horsholm_20200616.csv')
+    output_df.to_csv('C:/Users/atyr/OneDrive - Novo Nordisk/Private/scrape_boliga/scraped_data/vedbaek_20200716.csv')
 
 
 
