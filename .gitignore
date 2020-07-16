@@ -1,0 +1,27 @@
+# Generic files
+*.asv
+*.bak
+*.csv
+*.htm
+*.html
+*.log
+*.list
+*.out
+*.pdf
+*.png
+*.jpeg
+*.xml
+*.zip
+*.xpt
+*.tar
+*.pzfx
+
+# MS office files
+*.doc
+*.docx
+*.docm
+*.ppt
+*.pptx
+*.xls
+*.xlsx
+*.xlsm

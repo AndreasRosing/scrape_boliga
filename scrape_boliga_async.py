@@ -37,7 +37,7 @@ start_time = time.time()
 # Get the number of pages to scrape to get full dataset
 payload_init = {
             'salesDateMin': 2018,
-            'zipcodeFrom': 2960,
+            'zipcodeFrom': 2950,
             'zipcodeTo': 2970,
             'street': '',
             'saleType': '',
@@ -55,6 +55,7 @@ if prop_req_init.status_code == 200:
     # Get total number of pages to scrape
     properties_meta = yaml.load(prop_req_init.text)
     no_pages = properties_meta['meta']['totalPages']
+    print(f"Total number of pages to scrape: {no_pages}")
 
     # Generate all urls to scrape
     all_urls = list()
@@ -75,7 +76,7 @@ if prop_req_init.status_code == 200:
                        'price_change': [], 'settlement': [], 'lat': [], 
                        'long': [], 'lot_size': [], 'energy_class': [],
                        'ownership_expenses': [], 'basement_size': [],
-                       'days_on_market': []}
+                       'days_on_market': [], 'estateId': []}
         
         prop_req = requests.get(url)
         # with(yield from sem):
@@ -87,9 +88,13 @@ if prop_req_init.status_code == 200:
             # Get text string from request as a dictionary
             properties_dict = yaml.load(prop_req.text)
             
+            i_test = 0
             # Extract element of above dictionary to relevant lists
             for prop in range(0, len(properties_dict['results'])):
-                
+
+                # Set counter for printing purposes
+                i_test += 1
+
                 # Extract and append to lists
                 scrape_dict['street'].append(properties_dict['results'][prop]['address'])
                 scrape_dict['postnr'].append(properties_dict['results'][prop]['zipCode'])
@@ -105,6 +110,7 @@ if prop_req_init.status_code == 200:
                 scrape_dict['settlement'].append(properties_dict['results'][prop]['city'])
                 scrape_dict['lat'].append(properties_dict['results'][prop]['latitude'])
                 scrape_dict['long'].append(properties_dict['results'][prop]['longitude'])
+                scrape_dict['estateId'].append(properties_dict['results'][prop]['estateId'])
 
                 # Get historical and other data on properties through a normal html scrape
                 if properties_dict['results'][prop]['estateId'] != 0:
@@ -152,7 +158,7 @@ if prop_req_init.status_code == 200:
         else:
             return([np.nan])
 
-        print(prop_req.status_code, prop_req.url)
+        # print(prop_req.status_code, prop_req.url)
         return ([scrape_dict])
 
     realestate_list = []
@@ -162,13 +168,24 @@ if prop_req_init.status_code == 200:
 
     # Merge list of dict together into one dict
     realestate = {}
+    page_count = 0
     for i in range(len(realestate_list)):
         if (i == 0):
+            page_count += 1
             realestate = realestate_list[0][0] # initial list element
+            print(f"Page scraped: {page_count} / {no_pages}")
         else:
             realestate = {key: value + realestate_list[i][0][key] for key, value in realestate.items()}
+            print(f"Page scraped: {page_count} / {no_pages}")
 
-    # p = Pool(4)
+    # keys of issue
+    """
+    lot_size: instance found in first element of realestate_list
+    energy_class
+    ownership_expenses
+    """
+
+    # p = Pool(10)
     # p.map(scrape_boliga, all_urls[0:3])
     # p.terminate()
     # p.join()
