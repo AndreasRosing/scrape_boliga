@@ -37,8 +37,8 @@ start_time = time.time()
 # Get the number of pages to scrape to get full dataset
 payload_init = {
             'salesDateMin': 2018,
-            'zipcodeFrom': 2950,
-            'zipcodeTo': 2950,
+            'zipcodeFrom': 2960,
+            'zipcodeTo': 2970,
             'street': '',
             'saleType': '',
             'page': 1,
@@ -237,8 +237,8 @@ if prop_req_init.status_code == 200:
                     'price_change', 'price']]
     
     # Output to csv file - no commas left in variable values so CSV is an ok format
-    output_df.to_csv('C:/Users/atyr/OneDrive - Novo Nordisk/Private/scrape_boliga/scraped_data/vedbaek_20200716.csv')
-
+    # output_df.to_csv('C:/Users/atyr/OneDrive - Novo Nordisk/Private/scrape_boliga/scraped_data/vedbaek_20200716.csv')
+    output_df.to_csv('~/Documents/DataScience/Python/scrape_boliga/hoersholm_rungsted_2018-20200721.csv')
 
 
 """
