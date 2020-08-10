@@ -35,7 +35,7 @@ pd.set_option('expand_frame_repr', False)
 start_time = time.time()
 
 # Get the number of pages to scrape to get full dataset
-payload_init = {
+payload = {
             'salesDateMin': 2018,
             'zipcodeFrom': 2960,
             'zipcodeTo': 2970,
@@ -44,11 +44,11 @@ payload_init = {
             'page': 1,
             'sort': 'date-d',
             'propertyType': ''}
-headers_init = {'User-Agent': 'Mozilla/5.0',
-                'Referer': 'https://www.boliga.dk/salg/resultater?salesDateMin='+str(payload_init['salesDateMin'])+'&zipcodeFrom='+str(payload_init['zipcodeFrom'])+'&zipcodeTo='+str(payload_init['zipcodeTo'])+'&street=&saleType=&page=1&sort=date-d&propertyType='}
-prop_req_init = requests.get('https://api.boliga.dk/api/v2/sold/search/results?salesDateMin='+str(payload_init['salesDateMin'])+'&zipcodeFrom='+str(payload_init['zipcodeFrom'])+'&zipcodeTo='+str(payload_init['zipcodeTo'])+'&saleType=&page=1&sort=date-d&street=',
-                             data=payload_init,
-                             headers=headers_init,
+headers = {'User-Agent': 'Mozilla/5.0',
+                'Referer': 'https://www.boliga.dk/salg/resultater?salesDateMin='+str(payload['salesDateMin'])+'&zipcodeFrom='+str(payload['zipcodeFrom'])+'&zipcodeTo='+str(payload['zipcodeTo'])+'&street=&saleType=&page=1&sort=date-d&propertyType='}
+prop_req_init = requests.get('https://api.boliga.dk/api/v2/sold/search/results?salesDateMin='+str(payload['salesDateMin'])+'&zipcodeFrom='+str(payload['zipcodeFrom'])+'&zipcodeTo='+str(payload['zipcodeTo'])+'&saleType=&page=1&sort=date-d&street=',
+                             data=payload,
+                             headers=headers,
                              timeout=5)
 if prop_req_init.status_code == 200:
     
@@ -61,12 +61,10 @@ if prop_req_init.status_code == 200:
     all_urls = list()
     def generate_urls():
         for page in range(1, int(no_pages)+1):
-            all_urls.append('https://api.boliga.dk/api/v2/sold/search/results?salesDateMin='+str(payload_init['salesDateMin'])+'&zipcodeFrom='+str(payload_init['zipcodeFrom'])+'&zipcodeTo='+str(payload_init['zipcodeTo'])+'&saleType=&page=' + str(page) + '&sort=date-d&street=')
+            all_urls.append('https://api.boliga.dk/api/v2/sold/search/results?salesDateMin='+str(payload['salesDateMin'])+'&zipcodeFrom='+str(payload['zipcodeFrom'])+'&zipcodeTo='+str(payload['zipcodeTo'])+'&saleType=&page=' + str(page) + '&sort=date-d&street=')
     
     generate_urls()
 
-    # Scraping function
-    # @asyncio.coroutine
     @unsync
     def scrape_boliga(url):
         # Send request, timeout is implemented to prevent re-requesting if denied
@@ -79,8 +77,6 @@ if prop_req_init.status_code == 200:
                        'days_on_market': [], 'estateId': []}
         
         prop_req = requests.get(url)
-        # with(yield from sem):
-        #     prop_req = yield from aiohttp.requests('GET', url)
 
         # Check if access is allowed (200 = success)
         if prop_req.status_code == 200:
@@ -88,12 +84,8 @@ if prop_req_init.status_code == 200:
             # Get text string from request as a dictionary
             properties_dict = yaml.load(prop_req.text)
             
-            i_test = 0
             # Extract element of above dictionary to relevant lists
             for prop in range(0, len(properties_dict['results'])):
-
-                # Set counter for printing purposes
-                i_test += 1
 
                 # Extract and append to lists
                 scrape_dict['street'].append(properties_dict['results'][prop]['address'])
@@ -158,16 +150,13 @@ if prop_req_init.status_code == 200:
         else:
             return([np.nan])
 
-        # print(prop_req.status_code, prop_req.url)
         return ([scrape_dict])
 
     realestate_list = []
 
-    page_count = 0
-    for url in all_urls:
-        page_count += 1
+    for i, url in enumerate(all_urls):
         realestate_list.append(scrape_boliga(url).result())
-        print(f"Page scraped: {page_count} / {no_pages}")
+        print(f"Page scraped: {i+1} / {no_pages}")
 
     # Merge list of dict together into one dict
     realestate = {}
@@ -177,11 +166,6 @@ if prop_req_init.status_code == 200:
         else:
             realestate = {key: value + realestate_list[i][0][key] for key, value in realestate.items()}
 
-    # p = Pool(10)
-    # p.map(scrape_boliga, all_urls[0:3])
-    # p.terminate()
-    # p.join()
-
     # Time scraping process
     time_async_scrape = time.time() - start_time
     print(f"It took {time_async_scrape} seconds to scrape.")
@@ -190,7 +174,6 @@ if prop_req_init.status_code == 200:
     df = pd.DataFrame(realestate)
     
     # Update df with additional columns
-    # street number
     def get_street_num(x):
         if len(re.findall(',', x)) == 1:
             return re.findall(".*(\\W\\w+),", x)[0].strip()
@@ -200,9 +183,8 @@ if prop_req_init.status_code == 200:
             return np.nan
     df['street_num'] = df.apply(lambda x: get_street_num(x['street']), axis=1)
     
-    # if an appartment then a floor value
     def get_floor(x):
-        if x['property_type'] == 3:
+        if x['property_type'] == 3: # appartment
             if len(re.findall(',', x['street'])) == 1:
                 return re.findall("[,]\s(.*)", x['street'])[0]
             elif len(re.findall(',', x['street'])) == 0:
@@ -214,7 +196,6 @@ if prop_req_init.status_code == 200:
     # clean street name
     df['street'] = df.apply(lambda x: re.findall("^(.*?)\s[0-9]", x['street'])[0], axis=1)
     
-    # Encode property type to human language
     def assign_property_type(x):
         if x['property_type'] == 1:
             return 'Villa'
@@ -226,6 +207,7 @@ if prop_req_init.status_code == 200:
             return 'Fritidshus'
         else:
             return 'Landejendom'
+    
     df['property_type'] = df.apply(lambda x: assign_property_type(x), axis=1)
     
     # Set up output dataframe with variable in wanted order
