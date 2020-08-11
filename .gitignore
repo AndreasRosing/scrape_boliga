@@ -25,3 +25,9 @@
 *.xls
 *.xlsx
 *.xlsm
+
+# Others
+.ipynb_checkpoints
+.vscode/
+scraped_data/
+code_testing.ipynb

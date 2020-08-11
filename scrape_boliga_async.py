@@ -15,7 +15,6 @@ Improvement ideas:
 
 """
 
-# Get libraries
 import pandas as pd
 import re
 import numpy as np
@@ -23,27 +22,22 @@ import requests
 import yaml
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
-# import math
 import time
 from unsync import unsync
-# from multiprocessing import Pool
-# import asyncio
-# import nest_asyncio
 pd.set_option('expand_frame_repr', False)
 
 # Time scraping process
 start_time = time.time()
 
 # Get the number of pages to scrape to get full dataset
-payload = {
-            'salesDateMin': 2018,
-            'zipcodeFrom': 2960,
-            'zipcodeTo': 2970,
-            'street': '',
-            'saleType': '',
-            'page': 1,
-            'sort': 'date-d',
-            'propertyType': ''}
+payload = {'salesDateMin': 2018,
+           'zipcodeFrom': 2960,
+           'zipcodeTo': 2970,
+           'street': '',
+           'saleType': '',
+           'page': 1,
+           'sort': 'date-d',
+           'propertyType': ''}
 headers = {'User-Agent': 'Mozilla/5.0',
                 'Referer': 'https://www.boliga.dk/salg/resultater?salesDateMin='+str(payload['salesDateMin'])+'&zipcodeFrom='+str(payload['zipcodeFrom'])+'&zipcodeTo='+str(payload['zipcodeTo'])+'&street=&saleType=&page=1&sort=date-d&propertyType='}
 prop_req_init = requests.get('https://api.boliga.dk/api/v2/sold/search/results?salesDateMin='+str(payload['salesDateMin'])+'&zipcodeFrom='+str(payload['zipcodeFrom'])+'&zipcodeTo='+str(payload['zipcodeTo'])+'&saleType=&page=1&sort=date-d&street=',
@@ -219,69 +213,14 @@ if prop_req_init.status_code == 200:
                     'price_change', 'price']]
     
     # Output to csv file - no commas left in variable values so CSV is an ok format
-    # output_df.to_csv('C:/Users/atyr/OneDrive - Novo Nordisk/Private/scrape_boliga/scraped_data/vedbaek_20200716.csv')
-    output_df.to_csv('~/Documents/DataScience/Python/scrape_boliga/hoersholm_rungsted_2018-20200721.csv')
+    output_df.to_csv('C:/Users/atyr/OneDrive - Novo Nordisk/Private/scrape_boliga/scraped_data/hoersholm_rungsted_20200811.csv')
+    # output_df.to_csv('~/Documents/DataScience/Python/scrape_boliga/hoersholm_rungsted_2018-20200721.csv')
 
+plt_df = output_df[(output_df.property_type == "Villa") &
+                   (output_df.days_on_market.notnull()) &
+                   (output_df.sales_type == "Alm. Salg")]
 
-"""
-# I think that perhaps BeautifulSoup may be the best tool for this task
-# Send request, timeout is implemented to prevent re-requesting if denied
-prop_req = requests.get('https://www.boliga.dk/bolig/1581004/lyneborggade_8_st_tv')
-# Check if access is allowed (200 mean success)
-if prop_req.status_code == 200:
-    # Get text string from request as a dictionary
-    properties_dict = yaml.load(prop_req.text)
-"""
-
-"""
-# Get historical and other data on properties through a normal html scrape
-# The url should be https://www.boliga.dk/bolig/'estateId'
-from bs4 import BeautifulSoup
-from urllib.request import urlopen
-
-for i in range(0, 50):
-    print(properties_dict['results'][i]['estateId'])
-
-# Scrape vta
-url_test = 'https://www.boliga.dk/bolig/1594371'#/lyneborggade_8_st_tv'
-html_test = urlopen(url_test)
-soup_test = BeautifulSoup(html_test, 'lxml')
-
-# Get day and menu as bs elements
-span_box_data= soup_test.find_all('span', class_='d-md-none my-auto')
-# The sequence of variables is: outer_sqm, lot_size, no_rooms, floor, year_built,
-#                               energy_class, ownership_expenses, basement_size,
-#                               sqm_tinglyst
-span_time_on_market = soup_test.find_all('span', class_='text-primary h5 h-md-4 m-0')
-
-# Testing regex for extraction of data needed - example
-test = re.findall('\s(.*)\spå markedet', span_time_on_market[0].get_text())
-# Average month length: 30.42 (I need this to convert to days)
-if 'dage' in test[0]:
-    days_on_market = 'dage'
-elif 'måneder' in test[0]:
-    days_on_market = 'måneder'
-elif 'år' in test[0]:
-    days_on_market = 'år'
-else:
-    days_on_market = 'other'
-print(days_on_market)
-
-
-# Failed async code
-nest_asyncio.apply()
-sem = asyncio.Semaphore(4)
-loop = asyncio.get_event_loop()
-loop.run_until_complete(asyncio.wait([scrape_boliga(i) for i in all_urls[0:2]]))
-
-sem = asyncio.Semaphore(4)
-loop = asyncio.get_event_loop()
-loop.run_until_complete(asyncio.wait([scrape_boliga(i) for i in all_urls[0:2]]))
-answer = {}
-answer.update(scrape_boliga(all_urls[0]))
-answer2 ={}
-answer2.update(scrape_boliga(all_urls[1]))
-
-new = {key: value + answer2[key] for key, value in answer.items()}
-
-"""
+sns.distplot(plt_df.days_on_market, kde=False, bins=30)
+plt.title("Days on Market - Villas in Hoersholm and Rungsted")                   
+plt.xlabel("Days on Market")
+plt.ylabel("Frequency")
